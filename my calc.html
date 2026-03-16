@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scientific Calculator + Math Game</title>
+    <style>
+        body {
+            font-family: Arial;
+            display: flex;
+            justify-content: center;
+            padding-top: 30px;
+            background: #f0f0f0;
+        }
+        .calculator {
+            background: #222;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 320px;
+            box-shadow: 0 0 20px #000;
+        }
+        #display {
+            width: 100%;
+            height: 50px;
+            font-size: 20px;
+            text-align: right;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: none;
+            color: #00ff90;
+            background: #000;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+        button {
+            height: 40px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .num { background: #444; color: white; }
+        .op { background: #666; color: white; }
+        .func { background: #888; color: white; }
+        .equal { background: #00aa55; color: white; grid-column: span 5; }
+        #history {
+            margin-top: 15px;
+            background: #333;
+            padding: 5px;
+            border-radius: 6px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        #history div { padding: 2px; cursor: pointer; }
+        #history div:hover { background: #555; }
+        #game {
+            margin-top: 15px;
+            background: #444;
+            padding: 8px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator">
+    <input type="text" id="display" disabled>
+
+    <div class="buttons">
+        <button class="func" onclick="add('sin(')">sin</button>
+        <button class="func" onclick="add('cos(')">cos</button>
+        <button class="func" onclick="add('tan(')">tan</button>
+        <button class="func" onclick="add('log(')">log</button>
+        <button class="func" onclick="add('ln(')">ln</button>
+
+        <button class="func" onclick="add('√(')">√</button>
+        <button class="func" onclick="add('^')">^</button>
+        <button class="func" onclick="add('π')">π</button>
+        <button class="func" onclick="add('e')">e</button>
+        <button class="func" onclick="add('!')">n!</button>
+
+        <button class="num" onclick="add('7')">7</button>
+        <button class="num" onclick="add('8')">8</button>
+        <button class="num" onclick="add('9')">9</button>
+        <button class="op" onclick="add('/')">÷</button>
+        <button class="op" onclick="delChar()">DEL</button>
+
+        <button class="num" onclick="add('4')">4</button>
+        <button class="num" onclick="add('5')">5</button>
+        <button class="num" onclick="add('6')">6</button>
+        <button class="op" onclick="add('*')">×</button>
+        <button class="op" onclick="clearDisplay()">C</button>
+
+        <button class="num" onclick="add('1')">1</button>
+        <button class="num" onclick="add('2')">2</button>
+        <button class="num" onclick="add('3')">3</button>
+        <button class="op" onclick="add('-')">−</button>
+        <button class="op" onclick="add('+')">+</button>
+
+        <button class="num" onclick="add('0')">0</button>
+        <button class="num" onclick="add('.')">.</button>
+        <button class="equal" onclick="calculate()">=</button>
+    </div>
+
+    <div id="history"></div>
+
+    <div id="game">
+        <h3>Math Game Mode</h3>
+        <div id="question"></div>
+        <input type="text" id="answer" placeholder="Your answer">
+        <button onclick="checkAnswer()">Submit</button>
+        <div id="score">Score: 0</div>
+        <button onclick="newGame()">New Game</button>
+    </div>
+</div>
+
+<script>
+let historyArr = [];
+let ans = 0;
+
+// Calculator functions
+function add(v) {
+    const d = document.getElementById("display");
+    d.value += v;
+}
+function clearDisplay() { document.getElementById("display").value = ""; }
+function delChar() { const d = document.getElementById("display"); d.value = d.value.slice(0,-1); }
+function factorial(n){ if(n<0) return NaN; if(n<=1) return 1; let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+function calculate(){
+    let exp = document.getElementById("display").value;
+    exp = exp.replace(/π/g,"Math.PI")
+             .replace(/e/g,"Math.E")
+             .replace(/√\(/g,"Math.sqrt(")
+             .replace(/sin\((.*?)\)/g,"Math.sin($1)")
+             .replace(/cos\((.*?)\)/g,"Math.cos($1)")
+             .replace(/tan\((.*?)\)/g,"Math.tan($1)")
+             .replace(/log\((.*?)\)/g,"Math.log10($1)")
+             .replace(/ln\((.*?)\)/g,"Math.log($1)")
+             .replace(/(\d+)!/g, "factorial($1)")
+             .replace(/Ans/g, ans);
+    try{
+        let result = eval(exp);
+        document.getElementById("display").value = result;
+        ans = result;
+        saveHistory(exp+" = "+result);
+    }catch{ document.getElementById("display").value="Error"; }
+}
+function saveHistory(entry){
+    historyArr.unshift(entry);
+    if(historyArr.length>10) historyArr.pop();
+    renderHistory();
+}
+function renderHistory(){
+    const h = document.getElementById("history");
+    h.innerHTML="";
+    historyArr.forEach((item)=>{
+        const div = document.createElement("div");
+        div.textContent = item;
+        div.onclick=()=>{ document.getElementById("display").value=item.split(" = ")[1]; };
+        h.appendChild(div);
+    });
+}
+
+// Math Game Mode
+let currentAnswer=0;
+let score=0;
+
+function newGame(){
+    score=0;
+    document.getElementById("score").textContent="Score: "+score;
+    nextQuestion();
+}
+
+function nextQuestion(){
+    const ops=["+","-","*","/"];
+    const op=ops[Math.floor(Math.random()*ops.length)];
+    let a=Math.floor(Math.random()*50)+1;
+    let b=Math.floor(Math.random()*50)+1;
+    if(op=="/") b=Math.floor(Math.random()*10)+1; // avoid decimals too long
+    currentAnswer=eval(a+op+b);
+    document.getElementById("question").textContent=`${a} ${op} ${b} = ?`;
+    document.getElementById("answer").value="";
+}
+
+function checkAnswer(){
+    const userAns=parseFloat(document.getElementById("answer").value);
+    if(userAns===currentAnswer){
+        score+=1;
+        alert("Correct!");
+    }else{
+        alert("Wrong! Correct answer: "+currentAnswer);
+    }
+    document.getElementById("score").textContent="Score: "+score;
+    nextQuestion();
+}
+</script>
+
+</body>
+</html>
